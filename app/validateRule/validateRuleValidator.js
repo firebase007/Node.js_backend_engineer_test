@@ -13,13 +13,17 @@ exports.validateRule = async (req, res, next) => {
 	const result = Joi.validate(req.body.rule, schema, {
 		allowUnknown: true,
 		abortEarly: true,
-	})
+    })
+    
+    console.log(result)
 
-	console.log(result, '------------')
+    if(result.error && result.error.message === '"value" is required'){
+         return Response.sendErrorResponse({ res, status: 'error', message: 'Rule is required', statuscode: 400, responseBody: null, })
+    }
 
-	// if(result.error.details[0].message.replace(/['"]/g, '') === "value must be an object") {
-	//     return Response.sendErrorResponse({res, status: "error", message: `${rule} should be a|an ${object}.`, statuscode: 422,responseBody: null});
-	// }
-
-	if (result.error) return Response.sendErrorResponse({ res, message: result.error.details[0].message.replace(/['"]/g, ''), statuscode: 422 })
+	if (result.error) {
+         return Response.sendErrorResponse({ res, status: 'error', message: result.error.details[0].message.replace(/['"]/g, ''), statuscode: 400, responseBody: null, })
+    }
+    next();
 }
+

@@ -7,7 +7,7 @@ module.exports = mongoose.model('ruleValidator', new Schema({
 	crew: { type: String },
 	age: { type: Number },
 	position: { type: String },
-	missions: { type: Object, required: true },
+	missions: { type: Object },
 	field: { type: String, required: true },
 	condition: { type: String, required: true },
 	condition_value: { type: Number, required: true },

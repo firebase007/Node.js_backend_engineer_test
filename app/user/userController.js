@@ -8,6 +8,6 @@ exports.getUserFromDB = async (req, res) => userService.getUserFromDb()
 	})).catch((error) => {
 		console.log(error)
 		return Response.sendErrorResponse({
-			res, status: 'error', message: 'Error message', statusCode: 500,
+			res, status: 'error', message: `Error message ${error}`, statusCode: 500,
 		})
 	})

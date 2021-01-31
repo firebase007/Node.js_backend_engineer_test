@@ -2,45 +2,34 @@ const Response = require('../helper')
 const validateRuleService = require('./validateRuleService')
 
 exports.validateRule = async (req, res) => {
+
+    // accept req.body from client
 	const payload = req.body
 
 	console.log(payload)
 
-	if (!payload.rule) {
+    // check for data field is passed
+	if (!payload.data) {
+		return Response.sendErrorResponse({
+			res, status: 'error', message: 'Data field is required.', statusCode: 400, responseBody: null,
+		})
+    }
+    
+    // check for rule field is passed
+    if (!payload.rule) {
 		return Response.sendErrorResponse({
 			res, status: 'error', message: 'Rule field is required.', statusCode: 400, responseBody: null,
 		})
 	}
 
-	if (!payload.data) {
-		return Response.sendErrorResponse({
-			res, status: 'error', message: 'Data field is required.', statusCode: 400, responseBody: null,
-		})
-	}
+	// // get data field payload
+    const dataField = payload.data
 
-	if (!payload.rule.field) {
-		return Response.sendErrorResponse({
-			res, status: 'error', message: 'field is required.', statusCode: 400, responseBody: null,
-		})
-	}
-
-	if (!payload.rule.condition) {
-		return Response.sendErrorResponse({
-			res, status: 'error', message: 'condition is required.', statusCode: 400, responseBody: null,
-		})
-	}
-
-	if (!payload.rule.condition_value) {
-		return Response.sendErrorResponse({
-			res, status: 'error', message: 'condition_value is required.', statusCode: 400, responseBody: null,
-		})
-	}
-
-	// accept data a string, arry or json obj
-	const dataField1 = payload.data
-	if (Array.isArray(dataField1)) {
-		console.log(dataField1.length, payload.rule.field, payload.rule.condition_value, '11111', dataField1.length === payload.rule.field)
-		if (dataField1.length == payload.rule.field && dataField1.includes(payload.rule.condition_value)) {
+    console.log(payload)
+    
+    //check when data field is an array
+	if (Array.isArray(dataField)) {
+		if (dataField.length == payload.rule.field && dataField.includes(payload.rule.condition_value)) {
 			return Response.sendResponse({
 				res,
 				status: 'success',
@@ -50,7 +39,7 @@ exports.validateRule = async (req, res) => {
 						error: false,
 						field: payload.rule.field,
 						field_value: payload.rule.condition_value,
-						condition: payload.rule.condition,
+						condition: payload.rule ? payload.rule.condition : '',
 						condition_value: payload.rule.condition_value,
 
 					},
@@ -62,8 +51,9 @@ exports.validateRule = async (req, res) => {
 		})
 	}
 
-	if ((typeof dataField1 === 'string')) {
-		if (dataField1.charAt(Number(payload.rule.field)) !== payload.rule.condition_value) {
+    // check when dataField as string
+	if ((typeof dataField === 'string')) {
+		if (dataField.charAt(Number(payload.rule.field)) !== payload.rule.condition_value) {
 			return Response.sendErrorResponse({
 				res,
 				status: 'error',
@@ -75,7 +65,7 @@ exports.validateRule = async (req, res) => {
             	validation: {
             		error: true,
             		field: payload.rule.field,
-            		field_value: dataField1.charAt(Number(payload.rule.field)),
+            		field_value: dataField.charAt(Number(payload.rule.field)),
             		condition: payload.rule.condition,
             		condition_value: payload.rule.condition_value,
 
@@ -84,8 +74,7 @@ exports.validateRule = async (req, res) => {
             },
 			})
 		}
-		if (dataField1.charAt(Number(payload.rule.field)) === payload.rule.condition_value) {
-			console.log(payload.rule.condition_value)
+		if (dataField.charAt(Number(payload.rule.field)) === payload.rule.condition_value) {
 			return Response.sendResponse({
 				res,
 				status: 'success',
@@ -96,7 +85,7 @@ exports.validateRule = async (req, res) => {
             	validation: {
             		error: false,
             		field: payload.rule.field,
-            		field_value: dataField1.charAt(Number(payload.rule.field)),
+            		field_value: dataField.charAt(Number(payload.rule.field)),
             		condition: payload.rule.condition,
             		condition_value: payload.rule.condition_value,
 
@@ -107,242 +96,22 @@ exports.validateRule = async (req, res) => {
 		}
 	}
 
-	const expr = payload.rule.condition
+    const ruleCondition = payload.rule.condition
+    
+    console.log(ruleCondition)
 
-	const test = payload.rule.field.split('.')
+    const checkFieldNesting = payload.rule.field.split('.')
+    
+    console.log(checkFieldNesting)
 
-	if (payload.rule.field || test.length == '2') {
-		validateRuleService.getNested(dataField1, test[0], test[1])
+    // check if rule field exists and check the depth of the nesting
+	if (payload.rule.field && checkFieldNesting.length == '2') {
+		validateRuleService.getNested(dataField, checkFieldNesting[0], checkFieldNesting[1])
 			.then((data) => {
-				console.log(data)
-				const fieldValue = data
-				if (!data || data == undefined) {
-					console.log(payload.rule.field)
-					const fieldValue2 = payload.data.missions
-					console.log(Object.keys(payload.data))
-					const dat2 = Object.keys(payload.data)
-					if (dat2.includes(payload.rule.field)) {
-						switch (expr) {
-						case 'gte':
-							if (fieldValue2 >= payload.rule.condition_value) {
-								return Response.sendResponse({
-									res,
-									status: 'success',
-									message: `field ${payload.rule.field} successfully validated.`,
-									responseBody:
-
-                            {
-                            	validation: {
-                            		error: false,
-                            		field: payload.rule.field,
-                            		field_value: fieldValue,
-                            		condition: payload.rule.condition,
-                            		condition_value: payload.rule.condition_value,
-
-                            	},
-
-                            },
-								})
-							}
-							Response.sendErrorResponse({
-								res,
-								status: 'error',
-								message: `field ${payload.rule.field} failed validation.`,
-								statusCode: 400,
-								responseBody:
-
-                            {
-                            	validation: {
-                            		error: true,
-                            		field: payload.rule.field,
-                            		field_value: fieldValue,
-                            		condition: payload.rule.condition,
-                            		condition_value: payload.rule.condition_value,
-
-                            	},
-
-                            },
-							})
-							break
-						case 'eq':
-							if (fieldValue2 === payload.rule.condition_value) {
-								return Response.sendResponse({
-									res,
-									status: 'success',
-									message: `field ${payload.rule.field} successfully validated.`,
-									responseBody:
-
-                            {
-                            	validation: {
-                            		error: false,
-                            		field: payload.rule.field,
-                            		field_value: fieldValue,
-                            		condition: payload.rule.condition,
-                            		condition_value: payload.rule.condition_value,
-
-                            	},
-
-                            },
-								})
-							}
-							Response.sendErrorResponse({
-								res,
-								status: 'error',
-								message: `field ${payload.rule.field} failed validation.`,
-								responseBody:
-
-                            {
-                            	validation: {
-                            		error: true,
-                            		field: payload.rule.field,
-                            		field_value: fieldValue,
-                            		condition: payload.rule.condition,
-                            		condition_value: payload.rule.condition_value,
-
-                            	},
-
-                            },
-							})
-
-							break
-						case 'neq':
-							if (fieldValue2 !== payload.rule.condition_value) {
-								return Response.sendResponse({
-									res,
-									status: 'success',
-									message: `field ${payload.rule.field} successfully validated.`,
-									responseBody:
-
-                            {
-                            	validation: {
-                            		error: false,
-                            		field: payload.rule.field,
-                            		field_value: fieldValue,
-                            		condition: payload.rule.condition,
-                            		condition_value: payload.rule.condition_value,
-
-                            	},
-
-                            },
-								})
-							}
-							Response.sendErrorResponse({
-								res,
-								statusCode: 400,
-								status: 'error',
-								message: `field ${payload.rule.field} failed validation.`,
-								responseBody:
-
-                            {
-                            	validation: {
-                            		error: true,
-                            		field: payload.rule.field,
-                            		field_value: fieldValue,
-                            		condition: payload.rule.condition,
-                            		condition_value: payload.rule.condition_value,
-
-                            	},
-
-                            },
-							})
-
-							break
-						case 'gt':
-							if (fieldValue2 > payload.rule.condition_value) {
-								return Response.sendResponse({
-									res,
-									status: 'success',
-									message: `field ${payload.rule.field} successfully validated.`,
-									responseBody:
-
-                    {
-                    	validation: {
-                    		error: false,
-                    		field: payload.rule.field,
-                    		field_value: fieldValue,
-                    		condition: payload.rule.condition,
-                    		condition_value: payload.rule.condition_value,
-
-                    	},
-
-                    },
-								})
-							}
-							Response.sendErrorResponse({
-								res,
-								statusCode: 400,
-								status: 'error',
-								message: `field ${payload.rule.field} failed validation.`,
-								responseBody:
-
-                    {
-                    	validation: {
-                    		error: true,
-                    		field: payload.rule.field,
-                    		field_value: fieldValue,
-                    		condition: payload.rule.condition,
-                    		condition_value: payload.rule.condition_value,
-
-                    	},
-
-                    },
-							})
-
-							break
-						case 'contains':
-							if (fieldValue2.includes(payload.rule.condition_value)) {
-								return Response.sendResponse({
-									res,
-									status: 'success',
-									message: `field ${payload.rule.field} successfully validated.`,
-									responseBody: {
-										validation: {
-											error: false,
-											field: payload.rule.field,
-											field_value: payload.rule.condition_value,
-											condition: payload.rule.condition,
-											condition_value: payload.rule.condition_value,
-
-										},
-									},
-								})
-							}
-							Response.sendErrorResponse({
-								res, status: 'error', message: `field ${payload.rule.field} is missing from data.`, statusCode: 400, responseBody: null,
-							})
-
-							break
-
-						default:
-							Response.sendErrorResponse({
-								res,
-								statusCode: 400,
-								status: 'error',
-								message: `field ${payload.rule.field} failed validation.`,
-								responseBody:
-
-                            {
-                            	validation: {
-                            		error: true,
-                            		field: payload.rule.field,
-                            		field_value: fieldValue,
-                            		condition: payload.rule.condition,
-                            		condition_value: payload.rule.condition_value,
-
-                            	},
-
-                            },
-							})
-
-							break
-						}
-					}
-					Response.sendErrorResponse({
-						res, statusCode: 400, status: 'error', message: `field ${payload.rule.field} is missing from data.`, responseBody: null,
-					})
-				}
-
-				switch (expr) {
+                const fieldValue = data
+                console.log(fieldValue, '00000000')           
+            // switch condition for when field is nested
+				switch (ruleCondition) {
 				case 'gte':
 					if (fieldValue >= payload.rule.condition_value) {
 						return Response.sendResponse({
@@ -363,31 +132,32 @@ exports.validateRule = async (req, res) => {
 
                     },
 						})
-					}
-					Response.sendErrorResponse({
-						res,
-						statusCode: 400,
-						status: 'error',
-						message: `field ${payload.rule.field} failed validation.`,
-						responseBody:
-
-                    {
-                    	validation: {
-                    		error: true,
-                    		field: payload.rule.field,
-                    		field_value: fieldValue,
-                    		condition: payload.rule.condition,
-                    		condition_value: payload.rule.condition_value,
-
-                    	},
-
-                    },
-					})
-
+                    }
+                    else {
+                         Response.sendErrorResponse({
+                            res,
+                            statusCode: 400,
+                            status: 'error',
+                            message: `field ${payload.rule.field} failed validation.`,
+                            responseBody:
+    
+                        {
+                            validation: {
+                                error: true,
+                                field: payload.rule.field,
+                                field_value: fieldValue,
+                                condition: payload.rule.condition,
+                                condition_value: payload.rule.condition_value,
+    
+                            },
+    
+                        },
+                        })
+                    }
+				
 					break
 				case 'eq':
 					if (fieldValue == payload.rule.condition_value) {
-						console.log('got here now', fieldValue, payload.rule.condition_value)
 						return Response.sendResponse({
 							res,
 							status: 'success',
@@ -430,7 +200,6 @@ exports.validateRule = async (req, res) => {
 					break
 				case 'neq':
 					if (fieldValue !== payload.rule.condition_value) {
-						console.log('got here now', fieldValue, payload.rule.condition_value)
 						return Response.sendResponse({
 							res,
 							status: 'success',
@@ -513,7 +282,7 @@ exports.validateRule = async (req, res) => {
 					})
 					break
 				case 'contains':
-					if (fieldValue2.includes(payload.rule.condition_value)) {
+					if (dataMissionsField.includes(payload.rule.condition_value)) {
 						return Response.sendResponse({
 							res,
 							status: 'success',
@@ -557,47 +326,239 @@ exports.validateRule = async (req, res) => {
 					})
 
 					break
-				}
+                }
 			}).catch((err) => {
-				console.error(err)
-				return Response.sendErrorResponse({
-					res,
-					status: 'error',
-					statusCode: 400,
-					message: `field ${payload.rule.field} failed validation.`,
-					responseBody:
-
-                            {
-                            	validation: {
-                            		error: true,
-                            		field: payload.rule.field,
-                            		condition: payload.rule.condition,
-                            		condition_value: payload.rule.condition_value,
-
-                            	},
-
-                            },
-				})
+				console.error(err)	
 			})
-	}
+        } else {
+    
+                    
+                        const dataMissionsField = payload.data.missions
 
-	return Response.sendErrorResponse({
-		res,
-		status: 'error',
-		statusCode: 400,
-		message: `field ${payload.rule.field} failed validation.`,
-		responseBody:
-
-                            {
-                            	validation: {
-                            		error: true,
-                            		field: payload.rule.field,
-                            		field_value: fieldValue,
-                            		condition: payload.rule.condition,
-                            		condition_value: payload.rule.condition_value,
-
-                            	},
-
+                        const fieldValue = payload.rule.field;
+    
+                        //get all the data Object keys, so we can do a match of keys
+                        const getDataObjKeys = Object.keys(payload.data)
+                        if (getDataObjKeys.includes(payload.rule.field)) {
+                            // switch statement for non-nested obj
+                            switch (ruleCondition) {
+                            case 'gte':
+                                if (dataMissionsField >= payload.rule.condition_value) {
+                                    return Response.sendResponse({
+                                        res,
+                                        status: 'success',
+                                        message: `field ${payload.rule.field} successfully validated.`,
+                                        responseBody:
+    
+                                {
+                                    validation: {
+                                        error: false,
+                                        field: payload.rule.field,
+                                        field_value: fieldValue,
+                                        condition: payload.rule.condition,
+                                        condition_value: payload.rule.condition_value,
+    
+                                    },
+    
+                                },
+                                    })
+                                }
+                                Response.sendErrorResponse({
+                                    res,
+                                    status: 'error',
+                                    message: `field ${payload.rule.field} failed validation.`,
+                                    statusCode: 400,
+                                    responseBody:
+    
+                                {
+                                    validation: {
+                                        error: true,
+                                        field: payload.rule.field,
+                                        field_value: fieldValue,
+                                        condition: payload.rule.condition,
+                                        condition_value: payload.rule.condition_value,
+    
+                                    },
+    
+                                },
+                                })
+                                break;
+                            case 'eq':
+                                if (dataMissionsField === payload.rule.condition_value) {
+                                    return Response.sendResponse({
+                                        res,
+                                        status: 'success',
+                                        message: `field ${payload.rule.field} successfully validated.`,
+                                        responseBody:
+    
+                                {
+                                    validation: {
+                                        error: false,
+                                        field: payload.rule.field,
+                                        field_value: fieldValue,
+                                        condition: payload.rule.condition,
+                                        condition_value: payload.rule.condition_value,
+    
+                                    },
+    
+                                },
+                                    })
+                                }
+                                Response.sendErrorResponse({
+                                    res,
+                                    status: 'error',
+                                    message: `field ${payload.rule.field} failed validation.`,
+                                    responseBody:
+    
+                                {
+                                    validation: {
+                                        error: true,
+                                        field: payload.rule.field,
+                                        field_value: fieldValue,
+                                        condition: payload.rule.condition,
+                                        condition_value: payload.rule.condition_value,
+    
+                                    },
+    
+                                },
+                                })
+    
+                                break
+                            case 'neq':
+                                if (dataMissionsField !== payload.rule.condition_value) {
+                                    return Response.sendResponse({
+                                        res,
+                                        status: 'success',
+                                        message: `field ${payload.rule.field} successfully validated.`,
+                                        responseBody:
+    
+                                {
+                                    validation: {
+                                        error: false,
+                                        field: payload.rule.field,
+                                        field_value: fieldValue,
+                                        condition: payload.rule.condition,
+                                        condition_value: payload.rule.condition_value,
+    
+                                    },
+    
+                                },
+                                    })
+                                }
+                                Response.sendErrorResponse({
+                                    res,
+                                    statusCode: 400,
+                                    status: 'error',
+                                    message: `field ${payload.rule.field} failed validation.`,
+                                    responseBody:
+    
+                                {
+                                    validation: {
+                                        error: true,
+                                        field: payload.rule.field,
+                                        field_value: fieldValue,
+                                        condition: payload.rule.condition,
+                                        condition_value: payload.rule.condition_value,
+    
+                                    },
+    
+                                },
+                                })
+    
+                                break
+                            case 'gt':
+                                if (dataMissionsField > payload.rule.condition_value) {
+                                    return Response.sendResponse({
+                                        res,
+                                        status: 'success',
+                                        message: `field ${payload.rule.field} successfully validated.`,
+                                        responseBody:
+    
+                        {
+                            validation: {
+                                error: false,
+                                field: payload.rule.field,
+                                field_value: fieldValue,
+                                condition: payload.rule.condition,
+                                condition_value: payload.rule.condition_value,
+    
                             },
-	})
+    
+                        },
+                                    })
+                                }
+                                Response.sendErrorResponse({
+                                    res,
+                                    statusCode: 400,
+                                    status: 'error',
+                                    message: `field ${payload.rule.field} failed validation.`,
+                                    responseBody:
+    
+                        {
+                            validation: {
+                                error: true,
+                                field: payload.rule.field,
+                                field_value: fieldValue,
+                                condition: payload.rule.condition,
+                                condition_value: payload.rule.condition_value,
+    
+                            },
+    
+                        },
+                                })
+    
+                                break
+                            case 'contains':
+                                if (dataMissionsField.includes(payload.rule.condition_value)) {
+                                    return Response.sendResponse({
+                                        res,
+                                        status: 'success',
+                                        message: `field ${payload.rule.field} successfully validated.`,
+                                        responseBody: {
+                                            validation: {
+                                                error: false,
+                                                field: payload.rule.field,
+                                                field_value: fieldValue,
+                                                field_value: payload.rule.condition_value,
+                                                condition: payload.rule.condition,
+                                                condition_value: payload.rule.condition_value,
+    
+                                            },
+                                        },
+                                    })
+                                }
+                                Response.sendErrorResponse({
+                                    res, status: 'error', message: `field ${payload.rule.field} is missing from data.`, statusCode: 400, responseBody: null,
+                                })
+    
+                                break
+    
+                            default:
+                                Response.sendErrorResponse({
+                                    res,
+                                    statusCode: 400,
+                                    status: 'error',
+                                    message: `field ${payload.rule.field} failed validation.`,
+                                    responseBody:
+    
+                                {
+                                    validation: {
+                                        error: true,
+                                        field: payload.rule.field,
+                                        field_value: fieldValue,
+                                        condition: payload.rule.condition,
+                                        condition_value: payload.rule.condition_value,
+    
+                                    },
+    
+                                },
+                                })
+    
+                                break
+                            }
+                        }
+                        Response.sendErrorResponse({
+                            res, statusCode: 400, status: 'error', message: `field ${payload.rule.field} is missing from data.`, responseBody: null,
+                        })
+                    }
 }
