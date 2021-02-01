@@ -25,7 +25,6 @@ exports.validateRule = async (req, res) => {
 	// // get data field payload
     const dataField = payload.data
 
-    console.log(payload)
     
     //check when data field is an array
 	if (Array.isArray(dataField)) {
@@ -97,19 +96,21 @@ exports.validateRule = async (req, res) => {
 	}
 
     const ruleCondition = payload.rule.condition
-    
-    console.log(ruleCondition)
+
 
     const checkFieldNesting = payload.rule.field.split('.')
-    
-    console.log(checkFieldNesting)
 
+
+    
+    //get all the data Object keys, so we can do a match of keys
+    const getDataObjKeys = Object.keys(payload.data)
+   
     // check if rule field exists and check the depth of the nesting
-	if (payload.rule.field && checkFieldNesting.length == '2') {
+	if (payload.rule.field && typeof payload.rule.field == 'string' && checkFieldNesting.length == '2' && getDataObjKeys.includes(checkFieldNesting[0])) {
 		validateRuleService.getNested(dataField, checkFieldNesting[0], checkFieldNesting[1])
 			.then((data) => {
                 const fieldValue = data
-                console.log(fieldValue, '00000000')           
+         
             // switch condition for when field is nested
 				switch (ruleCondition) {
 				case 'gte':
@@ -283,7 +284,6 @@ exports.validateRule = async (req, res) => {
 					break
 				case 'contains':
                     const dataMissionsField = payload.data.missions
-                    console.log(dataMissionsField, 'fjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjjf')
 					if (typeof dataMissionsField === 'string' && dataMissionsField.includes(payload.rule.condition_value)) {
 						return Response.sendResponse({
 							res,
@@ -512,7 +512,6 @@ exports.validateRule = async (req, res) => {
                                 break
                             case 'contains':
                                 if (typeof dataMissionsField === 'string' && dataMissionsField.includes(payload.rule.condition_value)) {
-                                    console.log(dataMissionsField, 'fjfjfjfjfjjfjfjjfjjfjf')
                                     return Response.sendResponse({
                                         res,
                                         status: 'success',
