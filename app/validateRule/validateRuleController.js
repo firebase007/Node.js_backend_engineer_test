@@ -282,7 +282,9 @@ exports.validateRule = async (req, res) => {
 					})
 					break
 				case 'contains':
-					if (dataMissionsField.includes(payload.rule.condition_value)) {
+                    const dataMissionsField = payload.data.missions
+                    console.log(dataMissionsField, 'fjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjfjjf')
+					if (typeof dataMissionsField === 'string' && dataMissionsField.includes(payload.rule.condition_value)) {
 						return Response.sendResponse({
 							res,
 							status: 'success',
@@ -509,7 +511,8 @@ exports.validateRule = async (req, res) => {
     
                                 break
                             case 'contains':
-                                if (dataMissionsField.includes(payload.rule.condition_value)) {
+                                if (typeof dataMissionsField === 'string' && dataMissionsField.includes(payload.rule.condition_value)) {
+                                    console.log(dataMissionsField, 'fjfjfjfjfjjfjfjjfjjfjf')
                                     return Response.sendResponse({
                                         res,
                                         status: 'success',
